@@ -42,16 +42,14 @@ function apiWith(overrides: Record<string, unknown> = {}): Octokit {
 }
 
 describe('GitHub API adapter', () => {
-  it('rejects a token known not to have repository write permission', async () => {
+  it('does not treat GITHUB_TOKEN collaborator ACL as missing contents: write', async () => {
     const api = apiWith();
     vi.mocked(api.rest.repos.get).mockResolvedValueOnce({
-      data: { permissions: { push: false } },
+      data: { permissions: { admin: false, push: false, pull: true } },
     } as never);
     const client = createGitHubClientFromApi(api, repository);
 
-    await expect(client.assertContentsWrite()).rejects.toThrow(
-      'GitHub token requires contents: write permission for motoish/example',
-    );
+    await expect(client.assertContentsWrite()).resolves.toBeUndefined();
   });
 
   it('normalizes a lightweight tag target and maps missing refs to null', async () => {

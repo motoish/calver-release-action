@@ -26401,10 +26401,7 @@ function createGitHubClientFromApi(api, repository) {
   }
   return {
     async assertContentsWrite() {
-      const response = await call(() => api.rest.repos.get({ ...repository }));
-      if (response.data.permissions?.push === false) {
-        throw permissionError();
-      }
+      await call(() => api.rest.repos.get({ ...repository }));
     },
     async getTagTarget(tag) {
       try {
