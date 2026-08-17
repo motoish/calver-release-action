@@ -1,4 +1,4 @@
-name: CalVer Release
+name: Motoish CalVer Release
 description: Publish immutable daily CalVer builds and promote them to monthly stable releases
 author: motoish
 
