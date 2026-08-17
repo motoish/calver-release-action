@@ -1,0 +1,46 @@
+name: CalVer Release
+description: Publish immutable daily CalVer builds and promote them to monthly stable releases
+author: motoish
+
+inputs:
+  mode:
+    description: "Operation to perform: daily or promote"
+    required: true
+  token:
+    description: "GitHub token with contents: write permission"
+    required: true
+  timezone:
+    description: "IANA timezone used to calculate the daily CalVer date"
+    required: false
+    default: UTC
+  source_tag:
+    description: "Immutable build tag to promote when mode is promote"
+    required: false
+
+outputs:
+  version:
+    description: CalVer without the leading v
+  build_tag:
+    description: Immutable build tag
+  build_release_id:
+    description: Immutable build Release ID
+  build_release_url:
+    description: Immutable build Release URL
+  build_upload_url:
+    description: Immutable build Release asset upload URL
+  channel_tag:
+    description: Daily or monthly channel tag
+  channel_release_id:
+    description: Daily or monthly channel Release ID
+  channel_release_url:
+    description: Daily or monthly channel Release URL
+  channel_upload_url:
+    description: Daily or monthly channel Release asset upload URL
+
+runs:
+  using: node24
+  main: dist/index.js
+
+branding:
+  icon: tag
+  color: blue

@@ -1,0 +1,28 @@
+{
+  "name": "calver-release-action",
+  "version": "0.0.0",
+  "private": true,
+  "description": "GitHub Action for immutable daily CalVer builds and monthly stable promotion",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "package": "node scripts/build.mjs",
+    "check-package": "node scripts/check-package.mjs",
+    "verify": "npm run test && npm run typecheck && npm run check-package"
+  },
+  "dependencies": {
+    "@actions/core": "3.0.1",
+    "@actions/github": "9.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "26.2.0",
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2",
+    "vitest": "4.1.10",
+    "yaml": "2.9.0"
+  }
+}
