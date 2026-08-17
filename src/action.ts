@@ -7,7 +7,7 @@ import type {
   GitHubPort,
   Repository,
 } from './types';
-import { createDailyIdentity, formatCalendarDate } from './version';
+import { createDailyIdentity, formatCalendarDate, parseUnixEpoch } from './version';
 
 interface CorePort {
   getInput(name: string, options?: InputOptions): string;
@@ -50,6 +50,24 @@ function setOutputs(core: CorePort, outputs: ActionOutputs): void {
   }
 }
 
+function dailyIdentity(
+  instant: Date,
+  timezone: string,
+  sha: string,
+  expectedVersion: string,
+) {
+  const identity = createDailyIdentity(
+    formatCalendarDate(instant, timezone),
+    sha,
+  );
+  if (expectedVersion !== '' && expectedVersion !== identity.version) {
+    throw new Error(
+      `Expected version ${expectedVersion} does not match ${identity.version}`,
+    );
+  }
+  return identity;
+}
+
 export async function runAction(dependencies: ActionDependencies): Promise<void> {
   let token = '';
   try {
@@ -57,6 +75,8 @@ export async function runAction(dependencies: ActionDependencies): Promise<void>
     token = dependencies.core.getInput('token').trim();
     const timezone = dependencies.core.getInput('timezone').trim() || 'UTC';
     const sourceTag = dependencies.core.getInput('source_tag').trim();
+    const nowInput = dependencies.core.getInput('now').trim();
+    const expectedVersion = dependencies.core.getInput('expected_version').trim();
 
     if (mode !== 'daily' && mode !== 'promote') {
       throw new Error(`Invalid mode: ${mode}`);
@@ -70,15 +90,23 @@ export async function runAction(dependencies: ActionDependencies): Promise<void>
     if (mode === 'daily' && sourceTag !== '') {
       throw new Error('Input source_tag is only valid when mode is promote');
     }
+    if (mode === 'promote' && nowInput !== '') {
+      throw new Error('Input now is only valid when mode is daily');
+    }
+    if (mode === 'promote' && expectedVersion !== '') {
+      throw new Error('Input expected_version is only valid when mode is daily');
+    }
 
     const github = dependencies.createClient(token, dependencies.context.repository);
     const outputs =
       mode === 'daily'
         ? await dependencies.publishDaily({
             github,
-            identity: createDailyIdentity(
-              formatCalendarDate(dependencies.now(), timezone),
+            identity: dailyIdentity(
+              nowInput === '' ? dependencies.now() : parseUnixEpoch(nowInput),
+              timezone,
               dependencies.context.sha,
+              expectedVersion,
             ),
             repository: dependencies.context.repository,
           })

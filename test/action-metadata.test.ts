@@ -25,6 +25,16 @@ describe('action.yml public contract', () => {
         description: 'Immutable build tag to promote when mode is promote',
         required: false,
       },
+      now: {
+        description:
+          'Unix epoch seconds used as the daily calendar instant instead of the current time',
+        required: false,
+      },
+      expected_version: {
+        description:
+          'Caller-computed daily version that must match before any GitHub writes',
+        required: false,
+      },
     });
     expect(Object.keys(metadata.outputs)).toEqual([
       'version',

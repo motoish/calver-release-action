@@ -26012,6 +26012,16 @@ function isValidDate(date) {
   const candidate = new Date(Date.UTC(date.year, date.month - 1, date.day));
   return candidate.getUTCFullYear() === date.year && candidate.getUTCMonth() + 1 === date.month && candidate.getUTCDate() === date.day;
 }
+function parseUnixEpoch(value) {
+  if (!/^[0-9]+$/.test(value)) {
+    throw new Error(`Invalid unix epoch: ${value}`);
+  }
+  const date = new Date(Number(value) * 1e3);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(`Invalid unix epoch: ${value}`);
+  }
+  return date;
+}
 function formatCalendarDate(now, timezone) {
   let formatter;
   try {
@@ -26099,6 +26109,18 @@ function setOutputs(core, outputs) {
     core.setOutput(name, value);
   }
 }
+function dailyIdentity(instant, timezone, sha, expectedVersion) {
+  const identity = createDailyIdentity(
+    formatCalendarDate(instant, timezone),
+    sha
+  );
+  if (expectedVersion !== "" && expectedVersion !== identity.version) {
+    throw new Error(
+      `Expected version ${expectedVersion} does not match ${identity.version}`
+    );
+  }
+  return identity;
+}
 async function runAction(dependencies) {
   let token = "";
   try {
@@ -26106,6 +26128,8 @@ async function runAction(dependencies) {
     token = dependencies.core.getInput("token").trim();
     const timezone = dependencies.core.getInput("timezone").trim() || "UTC";
     const sourceTag = dependencies.core.getInput("source_tag").trim();
+    const nowInput = dependencies.core.getInput("now").trim();
+    const expectedVersion = dependencies.core.getInput("expected_version").trim();
     if (mode !== "daily" && mode !== "promote") {
       throw new Error(`Invalid mode: ${mode}`);
     }
@@ -26118,12 +26142,20 @@ async function runAction(dependencies) {
     if (mode === "daily" && sourceTag !== "") {
       throw new Error("Input source_tag is only valid when mode is promote");
     }
+    if (mode === "promote" && nowInput !== "") {
+      throw new Error("Input now is only valid when mode is daily");
+    }
+    if (mode === "promote" && expectedVersion !== "") {
+      throw new Error("Input expected_version is only valid when mode is daily");
+    }
     const github = dependencies.createClient(token, dependencies.context.repository);
     const outputs = mode === "daily" ? await dependencies.publishDaily({
       github,
-      identity: createDailyIdentity(
-        formatCalendarDate(dependencies.now(), timezone),
-        dependencies.context.sha
+      identity: dailyIdentity(
+        nowInput === "" ? dependencies.now() : parseUnixEpoch(nowInput),
+        timezone,
+        dependencies.context.sha,
+        expectedVersion
       ),
       repository: dependencies.context.repository
     }) : await dependencies.promoteStable({

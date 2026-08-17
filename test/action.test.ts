@@ -122,6 +122,67 @@ describe('runAction', () => {
     expect(deps.core.setFailed).not.toHaveBeenCalled();
   });
 
+  it('uses a caller-provided unix epoch instead of the wall clock', async () => {
+    const deps = dependencies({
+      mode: 'daily',
+      token: 'secret-token',
+      timezone: 'Asia/Tokyo',
+      now: '1786894200',
+    });
+    deps.now = vi.fn(() => new Date('2026-08-16T14:30:00Z'));
+
+    await runAction(deps);
+
+    expect(deps.now).not.toHaveBeenCalled();
+    expect(deps.publishDaily).toHaveBeenCalledWith({
+      github: expect.anything(),
+      identity: {
+        year: 2026,
+        month: 8,
+        day: 17,
+        sha,
+        sha8: 'a1b2c3d4',
+        version: '2026.8.17-a1b2c3d4',
+        buildTag: 'v2026.8.17-a1b2c3d4',
+        channelTag: 'v2026.8.17',
+      },
+      repository: { owner: 'motoish', repo: 'example' },
+    });
+    expect(deps.core.setFailed).not.toHaveBeenCalled();
+  });
+
+  it('rejects an expected version mismatch before any GitHub writes', async () => {
+    const deps = dependencies({
+      mode: 'daily',
+      token: 'secret-token',
+      timezone: 'Asia/Tokyo',
+      now: '1786894200',
+      expected_version: '2026.8.16-a1b2c3d4',
+    });
+
+    await runAction(deps);
+
+    expect(deps.core.setFailed).toHaveBeenCalledWith(
+      'Expected version 2026.8.16-a1b2c3d4 does not match 2026.8.17-a1b2c3d4',
+    );
+    expect(deps.publishDaily).not.toHaveBeenCalled();
+  });
+
+  it('accepts a matching expected version after resolving the daily identity', async () => {
+    const deps = dependencies({
+      mode: 'daily',
+      token: 'secret-token',
+      timezone: 'Asia/Tokyo',
+      now: '1786894200',
+      expected_version: '2026.8.17-a1b2c3d4',
+    });
+
+    await runAction(deps);
+
+    expect(deps.publishDaily).toHaveBeenCalledOnce();
+    expect(deps.core.setFailed).not.toHaveBeenCalled();
+  });
+
   it.each([
     [{ mode: 'nightly', token: 'secret-token' }, 'Invalid mode: nightly'],
     [{ mode: 'daily', token: '' }, 'Input token is required'],
@@ -140,6 +201,28 @@ describe('runAction', () => {
     [
       { mode: 'daily', token: 'secret-token', timezone: 'Mars/Olympus' },
       'Invalid IANA timezone: Mars/Olympus',
+    ],
+    [
+      { mode: 'daily', token: 'secret-token', now: 'not-an-epoch' },
+      'Invalid unix epoch: not-an-epoch',
+    ],
+    [
+      {
+        mode: 'promote',
+        token: 'secret-token',
+        source_tag: 'v2026.8.17-a1b2c3d4',
+        now: '1786894200',
+      },
+      'Input now is only valid when mode is daily',
+    ],
+    [
+      {
+        mode: 'promote',
+        token: 'secret-token',
+        source_tag: 'v2026.8.17-a1b2c3d4',
+        expected_version: '2026.8.17-a1b2c3d4',
+      },
+      'Input expected_version is only valid when mode is daily',
     ],
   ])('fails invalid inputs before dispatching services', async (inputs, message) => {
     const deps = dependencies(inputs);

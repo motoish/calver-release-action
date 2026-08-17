@@ -17,6 +17,18 @@ function isValidDate(date: CalendarDate): boolean {
   );
 }
 
+export function parseUnixEpoch(value: string): Date {
+  if (!/^[0-9]+$/.test(value)) {
+    throw new Error(`Invalid unix epoch: ${value}`);
+  }
+
+  const date = new Date(Number(value) * 1000);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(`Invalid unix epoch: ${value}`);
+  }
+  return date;
+}
+
 export function formatCalendarDate(now: Date, timezone: string): CalendarDate {
   let formatter: Intl.DateTimeFormat;
   try {

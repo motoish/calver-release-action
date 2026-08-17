@@ -68,6 +68,20 @@ fast-forwards `vYYYY.M.D`. If an older workflow finishes later, its immutable
 release is retained but the daily channel does not move backward. Unrelated
 commit histories fail instead of forcing the tag.
 
+When the caller computes the same CalVer before packaging, pass that instant
+and version so the Action does not reread the clock after a long build:
+
+```yaml
+with:
+  mode: daily
+  timezone: Asia/Tokyo
+  now: ${{ steps.identity.outputs.epoch }}
+  expected_version: ${{ steps.identity.outputs.version }}
+  token: ${{ github.token }}
+```
+
+A mismatched `expected_version` fails before any tag or Release is created.
+
 To use another date boundary:
 
 ```yaml
@@ -121,6 +135,8 @@ points to another commit, promotion fails without moving it.
 | `token` | Yes | — | GitHub token with `contents: write` |
 | `timezone` | No | `UTC` | IANA timezone used for daily dates |
 | `source_tag` | In `promote` mode | — | Immutable tag selected for promotion |
+| `now` | No | wall clock | Unix epoch seconds for the daily calendar instant |
+| `expected_version` | No | — | Caller-computed daily version; must match before GitHub writes |
 
 ## Outputs
 
