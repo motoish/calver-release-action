@@ -38,10 +38,11 @@ The release policy is intentionally strict:
 * an existing stable tag is never silently replaced;
 * unrelated Git histories are rejected instead of force-updating tags. The immutable build from that run is still left published.
 
-Dates use UTC by default. Set `timezone` to an IANA timezone such as `Asia/Tokyo` when another calendar boundary is required.
+Dates use UTC by default. Month and day are unpadded (`v2026.8.17`, not `v2026.08.17`). Set `timezone` to an IANA timezone such as `Asia/Tokyo` when another calendar boundary is required.
 
 > [!NOTE]
-> Month and day are unpadded. `v2026.8.17` is valid; `v2026.08.17` is not.
+> In this README, "immutable build" means that the build tag is never moved.
+> It does not refer to GitHub's Immutable Releases repository setting.
 
 > [!WARNING]
 > Do not enable GitHub immutable releases on a repository that uses the daily
@@ -59,14 +60,11 @@ permissions:
 
 The built-in `github.token` is sufficient. A personal access token is not required.
 
-> [!NOTE]
-> Branch, event, and concurrency policy stay in the calling workflow. This
-> Action only publishes after you invoke it. Fork pull requests cannot create
-> Releases in the base repository with `github.token`.
+Branch, event, and concurrency policy stay in the calling workflow. This Action only publishes after you invoke it. Fork pull requests cannot create Releases in the base repository with `github.token`.
 
 > [!TIP]
-> Pin this Action at `@v1` for the latest compatible release, or at a patch
-> such as `@v1.1.2` when you need a fixed revision.
+> Use `@v1` to follow the latest compatible v1 release, or a version such as
+> `@v1.1.2` when you want a specific release.
 
 ### Publish daily builds
 
@@ -123,7 +121,7 @@ The immutable build never moves.
 
 The daily channel may move forward to a newer commit from the same history.
 
-If an older workflow finishes after a newer one, its immutable release is still kept, but the daily channel is not moved backward.
+Concurrent daily jobs are expected. Fast-forward only applies when the new commit is a descendant. If an older workflow finishes after a newer one, its immutable release is still kept, and the daily channel is not moved backward.
 
 If the daily channel has diverged from the current commit, publication fails instead of forcing the tag. The immutable build created in that run is still left published.
 
@@ -131,11 +129,6 @@ If the daily channel has diverged from the current commit, publication fails ins
 > A same-day force-push or rebase of `main` can diverge the daily channel from
 > later commits. Publication then fails for the rest of that calendar day; the
 > next day starts a new `vYYYY.M.D` channel.
-
-> [!TIP]
-> Concurrent daily jobs are expected. Fast-forward only applies when the new
-> commit is a descendant. A late, older job keeps its immutable release and
-> leaves a newer channel where it is.
 
 ## Promote a stable release
 
@@ -180,9 +173,7 @@ The monthly version is derived from the source build tag, **not from the date on
 
 If `v2026.8` already points to another commit, promotion fails instead of moving the existing stable release.
 
-> [!TIP]
-> Promotion does not need `actions/checkout`. The Action reads the source tag
-> from GitHub, not from the runner workspace.
+Promotion does not need `actions/checkout`. The Action reads the source tag from GitHub, not from the runner workspace.
 
 > [!NOTE]
 > Re-running promotion of an older month can mark that month as GitHub's
@@ -216,12 +207,9 @@ It provides one predictable release policy that can be reused across repositorie
 
 ## Long-running builds
 
-> [!TIP]
-> If packaging can outlast midnight in the chosen timezone, compute the CalVer
-> identity before the build and pass `now` plus `expected_version`. That keeps
-> the uploaded artifact and the published tag on the same calendar day.
-
 A build can cross a calendar boundary between packaging and release.
+
+If packaging can outlast midnight in the chosen timezone, compute the CalVer identity before the build and pass `now` plus `expected_version`. That keeps the uploaded artifact and the published tag on the same calendar day.
 
 If the caller computes the release identity before the build starts, pass the same timestamp and expected version to the Action:
 
@@ -313,21 +301,20 @@ Normally, upload artifacts only to the immutable build:
   run: gh release upload "$BUILD_TAG" dist/app.tar.gz --clobber
 ```
 
-This keeps artifact identity tied to an immutable commit instead of a movable channel.
+This keeps artifact identity tied to a commit-specific release instead of the daily channel.
 
 > [!IMPORTANT]
-> Upload artifacts to `build_tag`, not to the daily or monthly channel. Channel
-> tags can move or be promoted independently of the files you attach.
+> Upload artifacts to `build_tag`. The daily channel may move to a newer build,
+> while a stable release references the selected immutable build without
+> copying its assets.
+
+If you want assets to appear directly on the stable GitHub Release, upload them separately after promotion using `channel_tag` or `channel_upload_url`.
 
 ## Release metadata
 
 Immutable and stable Release bodies are initialized by the Action but are not overwritten on retry, so maintainers can edit them manually.
 
-The daily channel body is managed by the Action and always identifies the immutable build it currently points to.
-
-> [!NOTE]
-> You can edit immutable and stable release notes. Do not rely on manual edits
-> to the daily channel body; the Action rewrites it whenever the channel moves.
+The daily channel body is managed by the Action and always identifies the immutable build it currently points to. Do not rely on manual edits to the daily channel body; the Action rewrites it whenever the channel moves.
 
 ## Development
 
