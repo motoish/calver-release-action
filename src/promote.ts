@@ -1,3 +1,4 @@
+import { errorStatus } from './errors';
 import { stableReleaseMetadata } from './release-metadata';
 import type {
   ActionOutputs,
@@ -12,13 +13,6 @@ export interface PromoteStableOptions {
   github: GitHubPort;
   sourceTag: string;
   repository: Repository;
-}
-
-function errorStatus(error: unknown): number | undefined {
-  if (typeof error !== 'object' || error === null || !('status' in error)) {
-    return undefined;
-  }
-  return typeof error.status === 'number' ? error.status : undefined;
 }
 
 async function ensureStableTag(

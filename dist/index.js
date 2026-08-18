@@ -26172,6 +26172,14 @@ async function runAction(dependencies) {
   }
 }
 
+// src/errors.ts
+function errorStatus(error2) {
+  if (typeof error2 !== "object" || error2 === null || !("status" in error2)) {
+    return void 0;
+  }
+  return typeof error2.status === "number" ? error2.status : void 0;
+}
+
 // src/release-metadata.ts
 function commitUrl(repository, sha) {
   return `https://github.com/${repository.owner}/${repository.repo}/commit/${sha}`;
@@ -26218,12 +26226,6 @@ Commit: [\`${identity.sha8}\`](${commitUrl(repository, sha)}).`,
 }
 
 // src/daily.ts
-function errorStatus(error2) {
-  if (typeof error2 !== "object" || error2 === null || !("status" in error2)) {
-    return void 0;
-  }
-  return typeof error2.status === "number" ? error2.status : void 0;
-}
 async function ensureImmutableTag(github, tag, sha) {
   let current = await github.getTagTarget(tag);
   if (current === null) {
@@ -26367,12 +26369,6 @@ async function publishDaily({
 }
 
 // src/github-client.ts
-function errorStatus2(error2) {
-  if (typeof error2 !== "object" || error2 === null || !("status" in error2)) {
-    return void 0;
-  }
-  return typeof error2.status === "number" ? error2.status : void 0;
-}
 function errorMessage2(error2) {
   return error2 instanceof Error ? error2.message : String(error2);
 }
@@ -26398,7 +26394,7 @@ function createGitHubClientFromApi(api, repository) {
     try {
       return await operation();
     } catch (error2) {
-      if (errorStatus2(error2) === 403) {
+      if (errorStatus(error2) === 403) {
         throw annotateForbidden(error2, repository);
       }
       throw error2;
@@ -26423,7 +26419,7 @@ function createGitHubClientFromApi(api, repository) {
         }
         return response.data.object.sha;
       } catch (error2) {
-        if (errorStatus2(error2) === 404) {
+        if (errorStatus(error2) === 404) {
           return null;
         }
         throw error2;
@@ -26468,7 +26464,7 @@ function createGitHubClientFromApi(api, repository) {
         );
         return normalizeRelease(response.data);
       } catch (error2) {
-        if (errorStatus2(error2) === 404) {
+        if (errorStatus(error2) === 404) {
           return null;
         }
         throw error2;
@@ -26510,12 +26506,6 @@ function createGitHubClient(token, repository) {
 }
 
 // src/promote.ts
-function errorStatus3(error2) {
-  if (typeof error2 !== "object" || error2 === null || !("status" in error2)) {
-    return void 0;
-  }
-  return typeof error2.status === "number" ? error2.status : void 0;
-}
 async function ensureStableTag(github, stableTag, sha) {
   let current = await github.getTagTarget(stableTag);
   if (current === null) {
@@ -26523,7 +26513,7 @@ async function ensureStableTag(github, stableTag, sha) {
       await github.createTag(stableTag, sha);
       current = sha;
     } catch (error2) {
-      if (errorStatus3(error2) !== 422) {
+      if (errorStatus(error2) !== 422) {
         throw error2;
       }
       current = await github.getTagTarget(stableTag);
@@ -26541,7 +26531,7 @@ async function ensureStableRelease(github, metadata) {
     try {
       return await github.createRelease(metadata);
     } catch (error2) {
-      if (errorStatus3(error2) !== 422) {
+      if (errorStatus(error2) !== 422) {
         throw error2;
       }
       release = await github.getReleaseByTag(metadata.tagName);

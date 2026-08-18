@@ -1,5 +1,6 @@
 import { getOctokit } from '@actions/github';
 
+import { errorStatus } from './errors';
 import type {
   CompareStatus,
   GitHubPort,
@@ -10,13 +11,6 @@ import type {
 } from './types';
 
 type Octokit = ReturnType<typeof getOctokit>;
-
-function errorStatus(error: unknown): number | undefined {
-  if (typeof error !== 'object' || error === null || !('status' in error)) {
-    return undefined;
-  }
-  return typeof error.status === 'number' ? error.status : undefined;
-}
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);

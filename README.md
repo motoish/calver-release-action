@@ -66,7 +66,9 @@ jobs:
 The Action creates `vYYYY.M.D-<sha8>` for the current commit and creates or
 fast-forwards `vYYYY.M.D`. If an older workflow finishes later, its immutable
 release is retained but the daily channel does not move backward. Unrelated
-commit histories fail instead of forcing the tag.
+commit histories fail instead of forcing the tag; in that failure the
+immutable build release is still left published, only the daily channel update
+is skipped.
 
 When the caller computes the same CalVer before packaging, pass that instant
 and version so the Action does not reread the clock after a long build:
@@ -124,8 +126,10 @@ jobs:
 ```
 
 The source tag must resolve to a published immutable pre-release created by
-the daily flow, and its SHA must match the tag suffix. If `vYYYY.M` already
-points to another commit, promotion fails without moving it.
+the daily flow, and its SHA must match the tag suffix. The suffix is an
+8-character abbreviation, so a different commit with the same 8-character
+prefix would pass this check; collisions are unlikely but possible. If
+`vYYYY.M` already points to another commit, promotion fails without moving it.
 
 ## Inputs
 

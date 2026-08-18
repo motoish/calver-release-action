@@ -80,12 +80,3 @@ export interface ActionOutputs {
   channelReleaseUrl: string;
   channelUploadUrl: string;
 }
-
-export type ActionMode = 'daily' | 'promote';
-
-export interface ActionInputs {
-  mode: ActionMode;
-  token: string;
-  timezone: string;
-  sourceTag?: string;
-}
