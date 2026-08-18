@@ -83,6 +83,8 @@ with:
 ```
 
 A mismatched `expected_version` fails before any tag or Release is created.
+The value is the daily CalVer without a leading `v`, including the 8-character
+SHA suffix, for example `2026.8.17-a1b2c3d4`.
 
 To use another date boundary:
 
@@ -140,13 +142,13 @@ prefix would pass this check; collisions are unlikely but possible. If
 | `timezone` | No | `UTC` | IANA timezone used for daily dates |
 | `source_tag` | In `promote` mode | — | Immutable tag selected for promotion |
 | `now` | No | wall clock | Unix epoch seconds for the daily calendar instant |
-| `expected_version` | No | — | Caller-computed daily version; must match before GitHub writes |
+| `expected_version` | No | — | Caller-computed daily version (`YYYY.M.D-sha8`, no leading `v`); must match before GitHub writes |
 
 ## Outputs
 
 | Output | Description |
 | --- | --- |
-| `version` | CalVer without the leading `v` |
+| `version` | Daily `YYYY.M.D-sha8` or monthly `YYYY.M`, without the leading `v` |
 | `build_tag` | Immutable build tag; the promotion source in `promote` mode |
 | `build_release_id` | Immutable build Release ID |
 | `build_release_url` | Immutable build Release URL |
