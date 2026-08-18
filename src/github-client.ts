@@ -18,6 +18,16 @@ function errorStatus(error: unknown): number | undefined {
   return typeof error.status === 'number' ? error.status : undefined;
 }
 
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function annotateForbidden(error: unknown, repository: Repository): Error {
+  return new Error(
+    `${errorMessage(error)}; if this is a permissions failure, GitHub token requires contents: write permission for ${repository.owner}/${repository.repo}`,
+  );
+}
+
 function normalizeRelease(data: {
   id: number;
   tag_name: string;
@@ -44,24 +54,22 @@ export function createGitHubClientFromApi(
   api: Octokit,
   repository: Repository,
 ): GitHubPort {
-  const permissionError = () =>
-    new Error(
-      `GitHub token requires contents: write permission for ${repository.owner}/${repository.repo}`,
-    );
-
   async function call<T>(operation: () => Promise<T>): Promise<T> {
     try {
       return await operation();
     } catch (error) {
       if (errorStatus(error) === 403) {
-        throw permissionError();
+        throw annotateForbidden(error, repository);
       }
       throw error;
     }
   }
 
   return {
-    async assertContentsWrite(): Promise<void> {
+    // Only checks that the repository is reachable. GITHUB_TOKEN's
+    // permissions.push ACL is not a reliable contents: write signal;
+    // mutating calls surface real write failures.
+    async preflightRepositoryAccess(): Promise<void> {
       await call(() => api.rest.repos.get({ ...repository }));
     },
 

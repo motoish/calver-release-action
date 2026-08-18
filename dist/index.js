@@ -26330,7 +26330,7 @@ async function publishDaily({
   identity,
   repository
 }) {
-  await github.assertContentsWrite();
+  await github.preflightRepositoryAccess();
   await ensureImmutableTag(github, identity.buildTag, identity.sha);
   const buildRelease = await ensureRelease(
     github,
@@ -26373,6 +26373,14 @@ function errorStatus2(error2) {
   }
   return typeof error2.status === "number" ? error2.status : void 0;
 }
+function errorMessage2(error2) {
+  return error2 instanceof Error ? error2.message : String(error2);
+}
+function annotateForbidden(error2, repository) {
+  return new Error(
+    `${errorMessage2(error2)}; if this is a permissions failure, GitHub token requires contents: write permission for ${repository.owner}/${repository.repo}`
+  );
+}
 function normalizeRelease(data) {
   return {
     id: data.id,
@@ -26386,21 +26394,21 @@ function normalizeRelease(data) {
   };
 }
 function createGitHubClientFromApi(api, repository) {
-  const permissionError = () => new Error(
-    `GitHub token requires contents: write permission for ${repository.owner}/${repository.repo}`
-  );
   async function call(operation) {
     try {
       return await operation();
     } catch (error2) {
       if (errorStatus2(error2) === 403) {
-        throw permissionError();
+        throw annotateForbidden(error2, repository);
       }
       throw error2;
     }
   }
   return {
-    async assertContentsWrite() {
+    // Only checks that the repository is reachable. GITHUB_TOKEN's
+    // permissions.push ACL is not a reliable contents: write signal;
+    // mutating calls surface real write failures.
+    async preflightRepositoryAccess() {
       await call(() => api.rest.repos.get({ ...repository }));
     },
     async getTagTarget(tag) {
@@ -26567,7 +26575,7 @@ async function promoteStable({
   sourceTag,
   repository
 }) {
-  await github.assertContentsWrite();
+  await github.preflightRepositoryAccess();
   const identity = parseImmutableTag(sourceTag);
   const sourceSha = await github.getTagTarget(sourceTag);
   if (sourceSha === null) {

@@ -160,7 +160,7 @@ export async function publishDaily({
   identity,
   repository,
 }: PublishDailyOptions): Promise<ActionOutputs> {
-  await github.assertContentsWrite();
+  await github.preflightRepositoryAccess();
   await ensureImmutableTag(github, identity.buildTag, identity.sha);
   const buildRelease = await ensureRelease(
     github,

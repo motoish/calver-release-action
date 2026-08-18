@@ -56,7 +56,7 @@ export interface ReleaseUpdateInput {
 export type CompareStatus = 'ahead' | 'behind' | 'identical' | 'diverged';
 
 export interface GitHubPort {
-  assertContentsWrite(): Promise<void>;
+  preflightRepositoryAccess(): Promise<void>;
   getTagTarget(tag: string): Promise<string | null>;
   createTag(tag: string, sha: string): Promise<void>;
   updateTagFastForward(tag: string, sha: string): Promise<void>;

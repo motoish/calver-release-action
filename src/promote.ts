@@ -98,7 +98,7 @@ export async function promoteStable({
   sourceTag,
   repository,
 }: PromoteStableOptions): Promise<ActionOutputs> {
-  await github.assertContentsWrite();
+  await github.preflightRepositoryAccess();
   const identity = parseImmutableTag(sourceTag);
   const sourceSha = await github.getTagTarget(sourceTag);
   if (sourceSha === null) {

@@ -18,7 +18,7 @@ export class FakeGitHub implements GitHubPort {
   permissionGranted = true;
   private nextReleaseId = 1;
 
-  async assertContentsWrite(): Promise<void> {
+  async preflightRepositoryAccess(): Promise<void> {
     if (!this.permissionGranted) {
       throw new Error('GitHub token requires contents: write permission');
     }

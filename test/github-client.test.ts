@@ -49,7 +49,7 @@ describe('GitHub API adapter', () => {
     } as never);
     const client = createGitHubClientFromApi(api, repository);
 
-    await expect(client.assertContentsWrite()).resolves.toBeUndefined();
+    await expect(client.preflightRepositoryAccess()).resolves.toBeUndefined();
   });
 
   it('normalizes a lightweight tag target and maps missing refs to null', async () => {
@@ -162,7 +162,21 @@ describe('GitHub API adapter', () => {
     });
   });
 
-  it('turns REST 403 errors into an actionable permission failure', async () => {
+  it('preserves the original GitHub 403 message instead of replacing it', async () => {
+    const api = apiWith();
+    vi.mocked(api.rest.git.createRef).mockRejectedValueOnce(
+      Object.assign(new Error('You have exceeded a secondary rate limit'), {
+        status: 403,
+      }),
+    );
+    const client = createGitHubClientFromApi(api, repository);
+
+    await expect(client.createTag('v2026.8.17', 'a'.repeat(40))).rejects.toThrow(
+      'You have exceeded a secondary rate limit; if this is a permissions failure, GitHub token requires contents: write permission for motoish/example',
+    );
+  });
+
+  it('annotates permission 403s with a contents: write hint without dropping the original message', async () => {
     const api = apiWith();
     vi.mocked(api.rest.git.createRef).mockRejectedValueOnce(
       Object.assign(new Error('Resource not accessible by integration'), {
@@ -172,7 +186,7 @@ describe('GitHub API adapter', () => {
     const client = createGitHubClientFromApi(api, repository);
 
     await expect(client.createTag('v2026.8.17', 'a'.repeat(40))).rejects.toThrow(
-      'GitHub token requires contents: write permission for motoish/example',
+      'Resource not accessible by integration; if this is a permissions failure, GitHub token requires contents: write permission for motoish/example',
     );
   });
 });
